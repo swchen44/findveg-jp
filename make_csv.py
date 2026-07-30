@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""從 大阪素食餐廳地圖.html 匯出 vegan_kansai_places.csv（供 Google My Maps 匯入）。
+店家資料有變動後，執行： python3 make_csv.py  就會重新產生 CSV。"""
+import re, csv, os
+
+HTML = os.path.join(os.path.dirname(__file__), 'index.html')
+OUT  = os.path.join(os.path.dirname(__file__), 'vegan_japan_places.csv')
+
+html = open(HTML, encoding='utf-8').read()
+js = next(x for x in re.findall(r'<script>(.*?)</script>', html, re.S) if 'const restaurants' in x)
+
+pblock = re.search(r'const PRICES = \{(.*?)\n\};', js, re.S).group(1)
+prices = {int(k): v for k, v in re.findall(r"(\d+)\s*:\s*'([^']*)'", pblock)}
+
+def _nocomment(s):
+    return re.sub(r'//[^\n]*', '', s)  # 去掉 // 註解，避免範例被誤當條目
+
+# 軟下架：已歇業店排除出 CSV（Google My Maps 不顯示，但網頁仍保留存查）
+cblock = re.search(r'const CLOSED = \{(.*?)\n\};', js, re.S)
+closed_ids = {int(k) for k, _ in re.findall(r"(\d+)\s*:\s*'([^']*)'", _nocomment(cblock.group(1)))} if cblock else set()
+
+# 逐店複查日期側表（與 HTML checkedDate 一致，最優先）
+chblock = re.search(r'const CHECKED = \{(.*?)\n\};', js, re.S)
+checked_map = {int(k): v for k, v in re.findall(r"(\d+)\s*:\s*'([^']*)'", _nocomment(chblock.group(1)))} if chblock else {}
+
+CHECK_OVERRIDE = {32: '2026-07-12'}  # 個別重新查證過的店家
+SHINSAIBASHI_RECHECK = {3, 4, 8, 12, 30, 34, 52, 98, 99, 100, 101, 102, 103, 104, 105, 143, 144, 146}  # 心齋橋一帶出發前 2026-07-14 重新核實
+def checked(i, region=''):
+    if i in checked_map:
+        return checked_map[i]   # 逐店複查覆蓋（最優先，與 HTML CHECKED 一致）
+    if i in SHINSAIBASHI_RECHECK:
+        return '2026-07-14'  # 心齋橋一帶出發前重新核實
+    if i in CHECK_OVERRIDE:
+        return CHECK_OVERRIDE[i]
+    if region == 'nara':
+        return '2026-07-14'  # 奈良全區出發前重新核實
+    if region == 'kyoto':
+        return '2026-07-14'  # 京都全區出發前重新核實
+    if region == 'okinawa':
+        return '2026-07-27'  # 沖繩全區新增查證
+    if region == 'kobe':
+        return '2026-07-27'  # 神戶全區新增查證
+    if region == 'tokyo':
+        return '2026-07-27'  # 東京圈全區新增查證
+    if region == 'hokkaido':
+        return '2026-07-28'  # 北海道全區新增查證
+    if region == 'kyushu':
+        return '2026-07-28'  # 九州全區新增查證
+    if region == 'chubu':
+        return '2026-07-28'  # 中部全區新增查證
+    if region == 'hiroshima':
+        return '2026-07-29'  # 廣島全區新增查證
+    if region == 'tohoku':
+        return '2026-07-29'  # 東北全區新增查證
+    if region == 'shikoku':
+        return '2026-07-29'  # 四國全區新增查證
+    if i >= 212:
+        return '2026-07-23'  # HappyCow/abillion 盤點補漏
+    if i >= 210:
+        return '2026-07-19'  # 新世界 恵美須屋 出發前查證
+    if i >= 152:
+        return '2026-07-14'  # 車站/百貨/街邊新批
+    if i >= 90:
+        return '2026-07-12'
+    return '2026-06-28' if i <= 25 else '2026-06-29' if i <= 37 else '2026-06-30' if i <= 51 else '2026-07-03'
+
+regionmap = {'': '大阪', 'osaka': '大阪', 'kyoto': '京都', 'nara': '奈良', 'okinawa': '沖繩', 'kobe': '神戶', 'tokyo': '東京', 'hokkaido': '北海道', 'kyushu': '九州', 'chubu': '中部', 'hiroshima': '廣島', 'tohoku': '東北', 'shikoku': '四國'}
+
+arr = re.search(r'const restaurants = \[(.*?)\n\];', js, re.S).group(1)
+starts = [(m.start(), int(m.group(1))) for m in re.finditer(r'\bid:(\d+),\s*rank:', arr)]
+rows = []
+for idx, (pos, rid) in enumerate(starts):
+    if rid in closed_ids:
+        continue  # 已歇業：不寫進 CSV（Google My Maps 不顯示）
+    end = starts[idx + 1][0] if idx + 1 < len(starts) else len(arr)
+    b = arr[pos:end]
+    def g(field):
+        m = re.search(field, b, re.S); return m.group(1).strip() if m else ''
+    nm = re.search(r'\bname:\s*([\'"])(.*?)\1', b, re.S)
+    name = nm.group(2) if nm else ''
+    region_raw = g(r"region:'([^']*)'") or 'osaka'
+    region = regionmap.get(region_raw, '大阪')
+    typ = g(r"\btype:\s*'([^']*)'")
+    area = g(r"\barea:\s*'([^']*)'")
+    address = g(r"\baddress:\s*'([^']*)'")
+    lat = g(r"\blat:\s*([\d.]+)"); lng = g(r"\blng:\s*([\d.]+)")
+    hours = g(r"\bhours:\s*'([^']*)'").replace('\\n', ' / ')
+    g_st = g(r"\bgStars:\s*'([^']*)'")
+    rows.append([rid, name, region, typ, area, address, lat, lng, hours, g_st,
+                 prices.get(rid, ''),
+                 f'https://www.google.com/maps/search/?api=1&query={lat},{lng}', checked(rid, region_raw)])
+
+with open(OUT, 'w', newline='', encoding='utf-8-sig') as f:
+    w = csv.writer(f)
+    w.writerow(['編號', '名稱', '地區', '類型', '地區/大樓', '地址', '緯度', '經度',
+                '營業時間', '評分', '每人價位', 'GoogleMaps連結', '核實日期'])
+    w.writerows(rows)
+
+print(f'寫出 {len(rows)} 筆 → {OUT}')
+missing = [r[0] for r in rows if not r[6] or not r[7]]
+print('缺座標:', missing if missing else '無')
