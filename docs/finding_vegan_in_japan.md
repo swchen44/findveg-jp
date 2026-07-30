@@ -2,7 +2,7 @@
 
 > 給未來擴充/補查日本各地素食店用的完整流程。
 > 主檔案：`index.html`（單一 HTML + Leaflet，無 build，直接部署 GitHub Pages）＝ app 首頁。
-> 這是獨立 app repo `findveg-jp`（「日本找素 FindVeg JP」）。主檔即 `index.html`，別改名（GitHub Pages 靠它當根入口）。`make_csv.py`／`maintenance_scan.py` 也硬編碼 `index.html`。
+> 這是獨立 app repo `findveg-jp`（「日本找素 FindVeg JP」）。主檔即 `index.html`，別改名（GitHub Pages 靠它當根入口）。`scripts/make_csv.py`／`scripts/maintenance_scan.py` 也硬編碼 `index.html`。
 >
 > **現況（2026-07-29）**：已擴為**全日本**，共 **460 家、12 個地區篩選**（`region` 值：`osaka/kyoto/nara/kobe/okinawa/tokyo/hokkaido/kyushu/chubu/hiroshima/tohoku/shikoku`）。id 已編到 462。新店續編最大 id。標題已是「全日本素食餐廳互動地圖」。
 > **要再擴充新 macro-region**（例北陸單獨拉出、山陰…）看 §4.5；**要補既有地區的店**直接 append 同 region 即可。
@@ -148,15 +148,15 @@ PRICES: 212: '午 ¥1,000–1,999／晚 ¥3,000–3,999'
 **要加一個全新 region（例 `'tohoku'`），只改這 5 處**（沿用既有 region 的做法照抄）：
 1. **地區篩選按鈕**：在那排 `region-btn` 加一顆 `<button class="region-btn" onclick="filterRegion('tohoku',this)">🍎 東北</button>`（選個代表 emoji：關西🟠🟣🟢🔵、沖繩🌺、東京🗼、北海道❄️、九州♨️、中部⛰️、廣島🕊️、東北🍎、四國🌉）。
 2. **`checkedDate(id, region)`**：加一條 `if (region === 'tohoku') return '<日期>';`（放 region 判斷那區）。
-3. **`make_csv.py` 的 `regionmap`**：加 `'tohoku': '東北'`。
-4. **`make_csv.py` 的 `checked()`**：加對應 `if region == 'tohoku': return '<日期>'`（與 HTML 的 checkedDate 一致）。
+3. **`scripts/make_csv.py` 的 `regionmap`**：加 `'tohoku': '東北'`。
+4. **`scripts/make_csv.py` 的 `checked()`**：加對應 `if region == 'tohoku': return '<日期>'`（與 HTML 的 checkedDate 一致）。
 5. **`<title>` 與 `<h1>`**：把新地區加進去（現行標題已是「全日本…」，通常不用每次改；只在想更新列舉時改）。
 
 > 屬既有 macro-region 的城市（如 神戶屬關西、橫濱/鎌倉/箱根屬 tokyo）**不用開新 region**，直接用該 region 值、`area` 註明城市即可。中部（名古屋+金澤+高山…）也共用 `'chubu'`。
 
 ### 4.6 `checkedDate(id, region)`（核實日期，區間判定）
 不逐筆存，依「特例集合 → CHECK_OVERRIDE → region → id 區間」順序回傳。新批店家最省事做法：**在最上面加一條 `if (id >= <本批起始id>) return '<日期>';`**。
-> **改 HTML 的 `checkedDate` 後，務必同步改 `make_csv.py` 的 `checked()`（兩邊邏輯要一致）**，否則 CSV 日期會對不上。
+> **改 HTML 的 `checkedDate` 後，務必同步改 `scripts/make_csv.py` 的 `checked()`（兩邊邏輯要一致）**，否則 CSV 日期會對不上。
 
 ### 4.7 百貨美食快篩 `depa`（id 白名單）
 `getFiltered` 裡 `activeFilter==='depa'` 用 id 白名單判定（目前：90–126、32、34、164–172、[186,192,193,194]）。**加百貨店要把新 id 併進這條白名單。**
@@ -187,7 +187,7 @@ html=html[:jx+1]+lines+html[jx+1:]
 ## 5. Step 4 — 產生 CSV（給 Google My Maps 匯入 + 網頁下載）
 
 ```bash
-python3 make_csv.py     # 從 HTML 解析 restaurants → vegan_japan_places.csv
+python3 scripts/make_csv.py     # 從 HTML 解析 restaurants → vegan_japan_places.csv
 ```
 - **店家資料一有變動就要重跑，並與 HTML 一起 commit**，讓下載的 CSV 與地圖同步。
 - 輸出會印「寫出 N 筆」與「缺座標」清單 → **缺座標必須是「無」**。
@@ -203,7 +203,7 @@ python3 -c "import re;html=open('index.html',encoding='utf-8').read();open('/tmp
 node --check /tmp/c.js && echo "語法 OK"
 
 # ② CSV 與 HTML 同步（重跑後應無新差異、缺座標為「無」）
-python3 make_csv.py
+python3 scripts/make_csv.py
 
 # ③ 店家總數一致（HTML id 數 == CSV 筆數 == header「共 N 家」）
 grep -oE "id:[0-9]+, rank:" index.html | wc -l
@@ -216,7 +216,7 @@ curl -s -o /dev/null -w "%{http_code}\n" "<happycow url>"
 ```
 
 - [ ] `node --check` 通過
-- [ ] `make_csv.py` 印「缺座標: 無」，筆數 = 期望家數
+- [ ] `scripts/make_csv.py` 印「缺座標: 無」，筆數 = 期望家數
 - [ ] header `共 N 家`／`index.html` 說明的家數已更新（**家數其實是 `restaurants.length` 動態算，但 `index.html` 卡片描述要手動改**）
 - [ ] 新店的 `photos`/`PRICES`/`checkedDate` 都補了
 - [ ] 若加了 group/region → 相關 4–6 處都改了
@@ -260,13 +260,13 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 |---|---|---|
 | 1 | **本地照片漏 `git add images/`** | 已提交的 HTML 引用 `images/NNN.jpg`，圖沒推上去 → **線上整批破圖**。曾實際發生(212–252)。push 前 `git status` 確認 `images/*.jpg` 都 A。 |
 | 2 | **Tabelog / Google 照片直接熱連** | `?token=` 簽章、Google 網址都會過期失效 → 破圖。**一律下載存 `images/`**。只有 HappyCow CDN 可熱連。 |
-| 3 | **改 HTML `checkedDate` 沒同步改 `make_csv.py` `checked()`** | CSV 核實日期與網頁對不上。兩處邏輯必須一致。 |
-| 4 | **店家變動沒重跑 `make_csv.py`** | 下載 CSV 與地圖不同步。改完一定重跑並一起 commit。 |
+| 3 | **改 HTML `checkedDate` 沒同步改 `scripts/make_csv.py` `checked()`** | CSV 核實日期與網頁對不上。兩處邏輯必須一致。 |
+| 4 | **店家變動沒重跑 `scripts/make_csv.py`** | 下載 CSV 與地圖不同步。改完一定重跑並一起 commit。 |
 | 5 | **柴魚だし判斷太寬鬆** | 把藏柴魚的定食/味噌湯/天つゆ當成可吃。日式高湯預設有柴魚，`type` 別亂寫「素食」，寫「(蔬食友善)」落 ❓，`notes` 註明需指定昆布/精進だし。 |
 | 6 | **`type` 用詞害 badge 判錯** | 葷店有素選項卻寫「素食」→ 誤判 ✅。純素才寫「全素/純素」；需客製寫「選項/友善」。必要時用 `CERTAIN_OVERRIDE`/`ASK_OVERRIDE`。 |
 | 7 | **新增 group 值只改一處** | marker 無色/圖例缺項/篩選失效。要改 4–6 處（見 §4.4）。 |
 | 8 | **重用歇業店的空號 id** | 撞到孤兒 `photos`/`PRICES`。歇業只刪 `restaurants[]` 物件、留空號，新店永遠續編最大 id。 |
-| 9 | **座標抓錯（經緯顛倒/度數錯）** | marker 掉到海裡。lat≈34–35、lng≈135(關西)；`make_csv.py` 會印「缺座標」但不會抓顛倒，需肉眼看地圖。 |
+| 9 | **座標抓錯（經緯顛倒/度數錯）** | marker 掉到海裡。lat≈34–35、lng≈135(關西)；`scripts/make_csv.py` 會印「缺座標」但不會抓顛倒，需肉眼看地圖。 |
 | 10 | **改主檔名 `index.html`** | 破壞 GitHub Pages 根入口與 make_csv/maintenance_scan 硬編碼路徑。**保留 `index.html`**。 |
 | 11 | **`index.html` 卡片家數沒改** | header badge 是 `restaurants.length` 動態，但 `index.html` 的描述文字是寫死的，要手動更新。 |
 | 12 | **背景研究員的清單沒比對就照抄** | 重複加入已存在的店。整合前先 `grep 店名` 查是否已在 HTML。 |
@@ -303,7 +303,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 2. **抓照片**：HappyCow 熱連（統一 `/500/`、curl 驗 200）／Tabelog 從店頁 og:image 下載存 `images/<id>.jpg`（帶 UA+referer、JP 版網址）；查無就 emoji 底圖（§3）。
 3. **寫進 HTML**：續編最大 id、用 Python 腳本生成 `restaurants[]`＋`photos`＋`PRICES`（§4.8）；`type` 用詞決定 ✅/❓，葷店客製記得 `ASK_OVERRIDE`。
 4. **新 macro-region** → 改 5 處（按鈕/checkedDate/make_csv regionmap+checked/title）（§4.5）；屬既有 region 的城市直接 append。
-5. `python3 make_csv.py`（缺座標須「無」）。
+5. `python3 scripts/make_csv.py`（缺座標須「無」）。
 6. `node --check`＋瀏覽器實測（region/飲食篩選、fitBounds 對焦、照片載入、`certainVeg()` 抽驗 badge、手機FAB）。
 7. `git add`（**含 `images/`！**）→ commit → push main → 等 Pages 部署 → `git status` 應乾淨。
 8. `sed -i '' 's/舊家數 家/新家數 家/' index.html`（家數寫死要手動更新）。
@@ -318,17 +318,17 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 ### 10.1 三層架構
 | 層 | 做什麼 | 成本 | 工具 |
 |---|---|---|---|
-| **Tier 0 便宜掃描** | 掃 Tabelog/官網頁與照片連結，找疑似歇業/移轉/死圖，只吐異常 | ~0（純 curl） | `maintenance_scan.py` |
+| **Tier 0 便宜掃描** | 掃 Tabelog/官網頁與照片連結，找疑似歇業/移轉/死圖，只吐異常 | ~0（純 curl） | `scripts/maintenance_scan.py` |
 | **Tier 1 LLM 確認** | 只把 Tier 0 的旗標丟給小 agent 確認、建議動作 | 極小（只碰旗標） | Agent |
 | **Tier 2 增量複查** | 依複查日期最舊優先，輪掃一個小區重查 hours/price/狀態 | 固定一小塊/次 | Agent + 更新 `CHECKED` |
 
-### 10.2 `maintenance_scan.py`（下架/死圖偵測，零 LLM）
+### 10.2 `scripts/maintenance_scan.py`（下架/死圖偵測，零 LLM）
 ```bash
-python3 maintenance_scan.py --region shikoku      # 建議：一次一小區
-python3 maintenance_scan.py --ids 253,254
-python3 maintenance_scan.py --all                 # 全掃(慢,內建限速)
-python3 maintenance_scan.py --region kyushu --happycow   # 額外查HappyCow頁(易被限流,小批)
-python3 maintenance_scan.py --region tokyo --photos-only  # 只驗照片死連
+python3 scripts/maintenance_scan.py --region shikoku      # 建議：一次一小區
+python3 scripts/maintenance_scan.py --ids 253,254
+python3 scripts/maintenance_scan.py --all                 # 全掃(慢,內建限速)
+python3 scripts/maintenance_scan.py --region kyushu --happycow   # 額外查HappyCow頁(易被限流,小批)
+python3 scripts/maintenance_scan.py --region tokyo --photos-only  # 只驗照片死連
 ```
 - 偵測：Tabelog `<title>【閉店】/【移転】`、`掲載を保留`；官網 HTTP 404/410/000(DNS失效)；HappyCow "permanently closed"；照片熱連非200 / 本地圖不存在。
 - 輸出：`maintenance_candidates.tsv`（只有異常），供人工/Tier 1 確認。
@@ -350,7 +350,7 @@ const CHECKED = { 253: '2026-08-15', ... };  // 重查某店就加/更新一條�
 確認歇業後，在 HTML 的 `CLOSED` 側表加一條 `id:'YYYY-MM'`（查證歇業年月），即自動：
 - 卡片灰底＋刪除線＋標「⛔ 已歇業（YYYY-MM 查證）」、marker 轉灰；
 - 預設從所有篩選隱藏，只在「⛔ 已歇業」篩選出現；家數變「共 N 家（另 M 家已歇業存查）」；
-- `make_csv.py` 自動把它**排除出 CSV**（Google My Maps 不顯示）。
+- `scripts/make_csv.py` 自動把它**排除出 CSV**（Google My Maps 不顯示）。
 - 目的：展現「我們有查、資料比較新」。**比直接刪好**：留歷史、id 不亂、不用動 `restaurants[]`。
 - **★關鍵坑**：`CLOSED`/`CHECKED`/`isClosed`/`closedBadge` **必須定義在 `restaurants.forEach`(建 marker) 之前**，否則 marker 迴圈呼叫 `isClosed` 會踩 `const` TDZ（`Cannot access 'CLOSED' before initialization`）→ 整個 script 中斷、全頁壞掉。改完務必 `node --check` **並**瀏覽器看 console 有無 exception。
 
@@ -359,4 +359,4 @@ const CHECKED = { 253: '2026-08-15', ... };  // 重查某店就加/更新一條�
 ---
 
 *相關記憶：`kansai-vegetarian-map`（資料結構細節）、`japan-expansion-roadmap`（全日本擴充進度與各 region 狀態）、`browser-fb-group-access`（用 Chrome 讀 FB 社團）。*
-*相關工具：`maintenance_scan.py`（下架/死圖偵測）。*
+*相關工具：`scripts/maintenance_scan.py`（下架/死圖偵測）。*

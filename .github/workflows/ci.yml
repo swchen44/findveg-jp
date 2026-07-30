@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: 資料完整性測試
+        run: python3 tests/test_data_integrity.py
+      - name: JS 語法檢查（node --check 內嵌 script）
+        run: |
+          python3 -c "import re;html=open('index.html',encoding='utf-8').read();s=next(x for x in re.findall(r'<script>(.*?)</script>',html,re.S) if 'const restaurants' in x);open('/tmp/c.js','w').write(s)"
+          node --check /tmp/c.js
+      - name: CSV 產生一致性（缺座標須為「無」）
+        run: python3 scripts/make_csv.py

@@ -26,19 +26,21 @@
 | `images/` | 店家照片（`NNN.jpg`，id 對應） |
 | `素食溝通卡.html` / `.png` | 蛋奶素餐廳溝通卡 |
 | `manifest.json` / `sw.js` / `icons/` | PWA 設定、service worker、app 圖示 |
-| `make_csv.py` | 從 index.html 產生 CSV |
-| `maintenance_scan.py` | 偵測疑似歇業/移轉與死圖（維護用，零 LLM） |
-| `design.md` | **架構/維護總覽**：資料模型、核心系統、「想改 X 動 Y」速查、踩坑清單 |
-| `finding_vegan_in_japan.md` | 完整 SOP：如何蒐集/寫入/驗證/維護（含 §10 維護心法） |
+| `scripts/make_csv.py` | 從 index.html 產生 CSV |
+| `scripts/maintenance_scan.py` | 偵測疑似歇業/移轉與死圖（維護用，零 LLM） |
+| `tests/` | 資料完整性測試（零相依、CI 會跑） |
+| `docs/design.md` | **架構/維護總覽**：資料模型、核心系統、「想改 X 動 Y」速查、踩坑清單 |
+| `docs/finding_vegan_in_japan.md` | 完整 SOP：如何蒐集/寫入/驗證/維護（含 §10 維護心法） |
 | `app-shell/` | Capacitor 腳手架＋`BUILD.md`：之後上架 App Store/Play 用（不影響網頁） |
 
-## 本機執行 / 維護
+## 本機執行 / 維護 / 測試
 ```bash
-python3 -m http.server 8000    # 開 http://localhost:8000/
-python3 make_csv.py            # 店家資料變動後重產 CSV
-python3 maintenance_scan.py --region shikoku   # 偵測某區疑似歇業/死圖
+python3 -m http.server 8000              # 開 http://localhost:8000/
+python3 scripts/make_csv.py              # 店家資料變動後重產 CSV
+python3 scripts/maintenance_scan.py --region shikoku   # 偵測某區疑似歇業/死圖
+python3 tests/test_data_integrity.py     # 資料完整性測試（id/座標/region/孤兒側表/圖檔）
 ```
-維護做法（增量更新、下架、複查日期）詳見 `finding_vegan_in_japan.md` §10。
+維護做法（增量更新、下架、複查日期）詳見 `docs/finding_vegan_in_japan.md` §10；架構見 `docs/design.md`。
 
 ## 資料來源與版權
 店家資料由 HappyCow／Tabelog／官方菜單／Google 地圖評論／素食社群心得**多方交叉查證**整理，原創價值在**蛋奶素查證與日式陷阱註解**。

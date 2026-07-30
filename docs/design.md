@@ -1,7 +1,7 @@
 # design.md — 日本找素 FindVeg JP 架構與維護總覽
 
 > 這份是「**app 怎麼組起來**」的技術地圖（給維護者快速建立心智模型）。
-> 「**怎麼蒐集/新增/維護店家**」的流程在 [`finding_vegan_in_japan.md`](finding_vegan_in_japan.md)（SOP）；上架 app 商店在 [`app-shell/BUILD.md`](app-shell/BUILD.md)。
+> 「**怎麼蒐集/新增/維護店家**」的流程在 [`finding_vegan_in_japan.md`](finding_vegan_in_japan.md)（SOP）；上架 app 商店在 [`app-shell/BUILD.md`](../app-shell/BUILD.md)。
 
 ## 1. 一句話架構
 **單一 `index.html`**（純前端 Leaflet 地圖 + 全部店家資料內嵌在一段 `<script>`）＝ app 本體；無 build、無後端。GitHub Actions 把 repo 根目錄直接部署到 GitHub Pages。PWA（manifest + service worker）讓它可安裝、離線。
@@ -13,11 +13,15 @@
 | `images/NNN.jpg` | 店家照片，`NNN`=店家 id |
 | `素食溝通卡.html`／`.png` | 附屬頁：蛋奶素溝通卡（`index.html` header 有連結） |
 | `manifest.json`／`sw.js`／`icons/` | PWA：安裝設定／離線快取／app 圖示 |
-| `vegan_japan_places.csv` | 由 `make_csv.py` 從 `index.html` 匯出（給 Google My Maps；header「下載 CSV」） |
-| `make_csv.py` | 解析 `index.html` 的資料表 → 產 CSV（**改資料後要重跑**） |
-| `maintenance_scan.py` | 掃店家連結/照片、偵測疑似歇業/死圖（維護 Tier 0，零 LLM） |
-| `.github/workflows/pages.yml` | GitHub Actions：push 到 main 就部署 Pages |
-| `app-shell/` | Capacitor 打包成 iOS/Android app 的腳手架（不影響網頁） |
+| `vegan_japan_places.csv` | 由 `scripts/make_csv.py` 從 `index.html` 匯出（給 Google My Maps；header「下載 CSV」） |
+| `scripts/make_csv.py` | 解析 `index.html` 的資料表 → 產 CSV（**改資料後要重跑**） |
+| `scripts/maintenance_scan.py` | 掃店家連結/照片、偵測疑似歇業/死圖（維護 Tier 0，零 LLM） |
+| `tests/test_data_integrity.py` | 資料完整性測試（id/座標/region/孤兒側表/圖檔）；零相依、CI 會跑 |
+| `docs/` | 文件：本檔 `design.md`、SOP `finding_vegan_in_japan.md`、`hero.png` |
+| `.github/workflows/` | `pages.yml`(push 到 main 部署 Pages)、`ci.yml`(測試+語法檢查) |
+| `app-shell/` | Capacitor 打包成 iOS/Android app 的腳手架＋`BUILD.md`（不影響網頁） |
+
+> **目錄結構**：服務中的網頁檔（`index.html`／`sw.js`／`manifest.json`／`icons/`／`images/`／溝通卡／CSV）**必須留在根目錄**（GitHub Pages 從根部署、SW scope 需在根）；文件放 `docs/`、Python 工具放 `scripts/`、測試放 `tests/`。
 
 ## 3. `index.html` 內的資料模型（都在那段 `<script>`）
 一個主陣列 + 四個 id-keyed 側表（新店只 append，側表用 id 對應）：
@@ -27,7 +31,8 @@
 - **`CLOSED{}`**：`id → 'YYYY-MM'`（軟下架：歇業查證年月）。
 - **`CHECKED{}`**：`id → 'YYYY-MM-DD'`（逐店複查日期覆蓋）。
 
-> ⚠️ 這四個側表 **id 是「弱參照」**：店歇業硬刪只刪 `restaurants[]` 物件，側表留孤兒無妨。新店永遠續編最大 id，**不重用空號**。
+> ⚠️ 這四個側表 **id 是「弱參照」**：新店永遠續編最大 id、**不重用空號**。
+> **移除某店時**：刪 `restaurants[]` 物件後，**也要一併刪掉它在 photos/PRICES/CLOSED/CHECKED 的同 id 條目**（`tests/test_data_integrity.py` 的 `test_no_orphan_sidetables` 會擋孤兒；不用軟下架而硬刪時尤其注意）。
 
 ## 4. 核心系統（都是函式，改行為找這些）
 | 系統 | 關鍵函式/變數 | 說明 |
@@ -48,17 +53,17 @@
 
 ## 6. 建置/部署管線
 ```
-編輯 index.html → python3 make_csv.py(產CSV) → node --check(語法) → 瀏覽器實測
+編輯 index.html → python3 scripts/make_csv.py(產CSV) → node --check(語法) → 瀏覽器實測
    → git push main → GitHub Actions(pages.yml) 自動部署 → https://swchen44.github.io/findveg-jp/
 ```
-維護（增量更新/下架/複查）詳見 SOP §10 與 `maintenance_scan.py`。
+維護（增量更新/下架/複查）詳見 SOP §10 與 `scripts/maintenance_scan.py`。
 
 ## 7. 「我想改 X → 動 Y」速查
 | 想做 | 改哪裡 |
 |---|---|
-| 新增店家 | `index.html`：append `restaurants[]`＋補 `photos`/`PRICES`；跑 `make_csv.py` |
+| 新增店家 | `index.html`：append `restaurants[]`＋補 `photos`/`PRICES`；跑 `scripts/make_csv.py` |
 | 新增一個地區(macro-region) | 見 SOP §4.5（篩選鈕＋checkedDate＋make_csv regionmap/checked，共 5 處） |
-| 標某店歇業 | `CLOSED` 加 `id:'YYYY-MM'` → 跑 `make_csv.py` |
+| 標某店歇業 | `CLOSED` 加 `id:'YYYY-MM'` → 跑 `scripts/make_csv.py` |
 | 更新某店複查日 | `CHECKED` 加/改 `id:'YYYY-MM-DD'` |
 | 改 badge 判定 | `certainVeg()` 正則 或 `CERTAIN_OVERRIDE`/`ASK_OVERRIDE` |
 | 換 app 圖示 | 重產 `icons/*.png`（見 git 歷史的 Pillow 腳本），改 `manifest.json`/`sw.js` `VERSION` |
@@ -66,7 +71,16 @@
 
 ## 8. 踩過的坑（改 code 前必看）
 1. **`CLOSED`/`isClosed` 必須定義在 `restaurants.forEach`(建 marker) 之前** → 否則 marker 迴圈呼叫 `isClosed` 踩 `const` TDZ（`Cannot access 'CLOSED' before initialization`），**整個 script 中斷、全頁壞掉**。改完務必看瀏覽器 console 有無 exception。
-2. **`make_csv.py`/`maintenance_scan.py` 抓「含 `const restaurants` 的 `<script>`」**，不是 `[-1]`（尾端有 SW 註冊那段 `<script>`，用 `[-1]` 會抓錯）。
+2. **`scripts/make_csv.py`/`scripts/maintenance_scan.py` 抓「含 `const restaurants` 的 `<script>`」**，不是 `[-1]`（尾端有 SW 註冊那段 `<script>`，用 `[-1]` 會抓錯）。
 3. **側表註解別寫 `數字:'值'` 樣式**（如 `// 範例 253:'2026-08'`）→ make_csv 的 regex 會誤當條目；已用 `_nocomment()` 去註解防呆，仍以 `<id>` 佔位為宜。
 4. **照片下載**：Tabelog 裸圖網址無 token 會下載成文字檔；要從店頁 `<meta og:image>` 抓帶 token 版、JP 版網址。詳見 SOP §3。
-5. 改資料**一定要重跑 `make_csv.py`** 讓 CSV 同步，否則「下載 CSV／My Maps」與地圖不一致。
+5. 改資料**一定要重跑 `scripts/make_csv.py`** 讓 CSV 同步，否則「下載 CSV／My Maps」與地圖不一致。
+6. **側表解析別用 `//[^\n]*` 去註解**（會砍掉值裡的 `https://` URL）→ 只砍整行 `^\s*//…`（見 `tests/` 與 make_csv `_nocomment`）。
+
+## 9. 測試（`tests/`）
+目前是**資料完整性測試**（`tests/test_data_integrity.py`，純 Python 零相依）：
+```bash
+python3 tests/test_data_integrity.py    # 全過 exit 0；也可 pytest tests/
+```
+檢查：id 不重複、座標在日本範圍、region 合法、`photos/PRICES/CLOSED/CHECKED` 無孤兒 id、本地圖檔存在、override set 不重疊、日期格式。**每次改資料後跑一次**，CI（`.github/workflows/ci.yml`）在 push/PR 也會自動跑。
+> 尚無的：JS 單元測試（certainVeg/getFiltered）、Playwright 煙霧測試（載入零 console error）——未來要更穩可補（見 README 測試段建議）。

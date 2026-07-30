@@ -3,8 +3,9 @@
 店家資料有變動後，執行： python3 make_csv.py  就會重新產生 CSV。"""
 import re, csv, os
 
-HTML = os.path.join(os.path.dirname(__file__), 'index.html')
-OUT  = os.path.join(os.path.dirname(__file__), 'vegan_japan_places.csv')
+ROOT = os.path.join(os.path.dirname(__file__), '..')  # scripts/ 的上一層＝repo 根
+HTML = os.path.join(ROOT, 'index.html')
+OUT  = os.path.join(ROOT, 'vegan_japan_places.csv')
 
 html = open(HTML, encoding='utf-8').read()
 js = next(x for x in re.findall(r'<script>(.*?)</script>', html, re.S) if 'const restaurants' in x)

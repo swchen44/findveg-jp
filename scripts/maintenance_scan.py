@@ -18,8 +18,9 @@
 """
 import re, os, sys, subprocess, time, argparse
 
-HTML = os.path.join(os.path.dirname(__file__), 'index.html')
-OUT  = os.path.join(os.path.dirname(__file__), 'maintenance_candidates.tsv')
+ROOT = os.path.join(os.path.dirname(__file__), '..')  # scripts/ 的上一層＝repo 根
+HTML = os.path.join(ROOT, 'index.html')
+OUT  = os.path.join(ROOT, 'maintenance_candidates.tsv')
 UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 
 def parse_args():
@@ -111,7 +112,7 @@ def check_photo(v):
             if code != '200':
                 return 'photo', f'HappyCow 熱連圖 HTTP {code}'
     else:
-        local = os.path.join(os.path.dirname(__file__), p)
+        local = os.path.join(ROOT, p)
         if not os.path.exists(local) or os.path.getsize(local) == 0:
             return 'photo', f'本地圖不存在: {p}'
     return None
