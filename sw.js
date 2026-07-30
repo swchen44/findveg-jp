@@ -5,7 +5,7 @@
    - 其餘(CSV、外部連結) → network-first，失敗才回快取。
    ※ 完整離線地圖圖磚不保證，只有先前載入過的區塊會被快取（同 HappyCow Pro 的限制）。
    改版時把 VERSION 加一，舊快取會自動清掉。 */
-const VERSION = 'findveg-v1';
+const VERSION = 'findveg-v2';
 const SHELL_CACHE = 'shell-' + VERSION;
 const RUNTIME_CACHE = 'runtime-' + VERSION;
 

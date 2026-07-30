@@ -1,8 +1,13 @@
 # 日本找素 FindVeg JP 🌿
 
+![日本找素 FindVeg JP](docs/hero.png)
+
 **繁中 × 訪日 × 蛋奶素**的日本素食導覽地圖 App（PWA）。全日本 **460 家**素食/蔬食友善店家，為**蛋奶素（ovo-lacto）**旅客量身整理，並針對日式料理的**隱藏葷料陷阱**（柴魚高湯かつおだし、豚骨、いりこ、味醂、五辛）逐店提醒——這是主流 App（HappyCow/Vegewel）沒做的細分。
 
-👉 **線上使用**：<https://swchen44.github.io/findveg-jp/>（可「加到主畫面」變成離線 App）
+## 👉 [▶ 開啟 App（線上 Demo）](https://swchen44.github.io/findveg-jp/)
+手機開啟後可「加到主畫面」變成離線 App（iOS Safari：分享→加入主畫面；Android Chrome：選單→安裝應用程式）。
+
+> 上圖為品牌主視覺；**實機畫面**（全日本地圖＋店家卡片）請點上方 live 連結。歡迎截圖 PR 到 `docs/`。
 
 ## 特色
 - **12 地區篩選**：關西（大阪/京都/奈良/神戶）・東京圈・北海道・九州・中部・廣島・東北・四國・沖繩。
@@ -23,7 +28,9 @@
 | `manifest.json` / `sw.js` / `icons/` | PWA 設定、service worker、app 圖示 |
 | `make_csv.py` | 從 index.html 產生 CSV |
 | `maintenance_scan.py` | 偵測疑似歇業/移轉與死圖（維護用，零 LLM） |
+| `design.md` | **架構/維護總覽**：資料模型、核心系統、「想改 X 動 Y」速查、踩坑清單 |
 | `finding_vegan_in_japan.md` | 完整 SOP：如何蒐集/寫入/驗證/維護（含 §10 維護心法） |
+| `app-shell/` | Capacitor 腳手架＋`BUILD.md`：之後上架 App Store/Play 用（不影響網頁） |
 
 ## 本機執行 / 維護
 ```bash

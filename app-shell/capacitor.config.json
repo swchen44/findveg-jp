@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.swchen44.findvegjp",
+  "appName": "日本找素 FindVeg JP",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  }
+}
