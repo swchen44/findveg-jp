@@ -82,5 +82,12 @@
 ```bash
 python3 tests/test_data_integrity.py    # 全過 exit 0；也可 pytest tests/
 ```
-檢查：id 不重複、座標在日本範圍、region 合法、`photos/PRICES/CLOSED/CHECKED` 無孤兒 id、本地圖檔存在、override set 不重疊、日期格式。**每次改資料後跑一次**，CI（`.github/workflows/ci.yml`）在 push/PR 也會自動跑。
-> 尚無的：JS 單元測試（certainVeg/getFiltered）、Playwright 煙霧測試（載入零 console error）——未來要更穩可補（見 README 測試段建議）。
+檢查：id 不重複、座標在日本範圍、region 合法、`photos/PRICES/CLOSED/CHECKED` 無孤兒 id、本地圖檔存在、override set 不重疊、日期格式。**每次改資料後跑一次**。
+
+**E2E 煙霧測試**（`tests/e2e/smoke.spec.js`，Playwright）：
+```bash
+npm install && npx playwright test      # 需 Node；起 python http.server + 無頭 Chromium
+```
+4 條斷言：載入**零 JS 例外**（防 TDZ 整頁壞）＋460 家＋marker、沖繩篩選→35 家、已歇業切換不炸、PWA(manifest 名稱＋SW 註冊)。**選 marker/按鈕要用 class 限定**（`button.region-btn`）——店名含「沖繩」的 marker 也是 `role=button`，純用文字會誤選。
+CI（`.github/workflows/ci.yml`）兩個 job：`test`（資料完整性＋node --check＋make_csv）、`e2e`（Playwright），push/PR 自動跑。
+> 尚無的：JS 單元測試（certainVeg/getFiltered 純函式）——未來可補。

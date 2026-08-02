@@ -1,0 +1,12 @@
+{
+  "name": "findveg-jp-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "日本找素 FindVeg JP — E2E 煙霧測試（Playwright）",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  }
+}

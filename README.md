@@ -39,6 +39,7 @@ python3 -m http.server 8000              # 開 http://localhost:8000/
 python3 scripts/make_csv.py              # 店家資料變動後重產 CSV
 python3 scripts/maintenance_scan.py --region shikoku   # 偵測某區疑似歇業/死圖
 python3 tests/test_data_integrity.py     # 資料完整性測試（id/座標/region/孤兒側表/圖檔）
+npm install && npx playwright test       # E2E 煙霧測試（載入零錯誤/460/篩選/PWA；需 Node）
 ```
 維護做法（增量更新、下架、複查日期）詳見 `docs/finding_vegan_in_japan.md` §10；架構見 `docs/design.md`。
 
